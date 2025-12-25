@@ -2,28 +2,260 @@
 <html lang="uk">
 <head>
   <meta charset="UTF-8">
-  <title>Індивідуальне домашнє завдання</title>
+  <title>Гра Хрестики-нулики</title>
 
+  <style>
+    body 
+    {
+      margin: 0;
+      padding: 0;
+      font-family: Arial, sans-serif;
+      background: #ffffff;
+      display: flex;
+      justify-content: center;
+    }
+
+    .wrapper 
+    {
+      margin-top: 40px;
+      text-align: center;
+    }
+
+    .subtitle 
+    {
+      color: #666;
+      margin-bottom: 10px;
+    }
+
+    .controls select,
+    .controls button 
+    {
+      padding: 8px 14px;
+      margin: 5px;
+    }
+
+    #status 
+    {
+      margin: 10px 0;
+      font-weight: bold;
+    }
+
+    .board 
+    {
+      width: 360px;
+      margin: 20px auto;
+    }
+
+    .cell 
+    {
+      width: 110px;
+      height: 110px;
+      float: left;
+      margin: 5px;
+      font-size: 64px;
+      line-height: 110px;
+      cursor: pointer;
+      background: #f2f2f2;
+      user-select: none;
+    }
+
+    .cell.x { color: red; }
+    .cell.o { color: blue; }
+    .cell.win {
+      background: orange;
+      color: white;
+    }
+
+    .stats 
+    {
+      margin-top: 15px;
+    }
+  </style>
 
 </head>
 
 <body>
 
-  <div class="wrapper">
-    <h1>ХРЕСТИКИ-НУЛИКИ</h1>
-    <div class="subtitle">Класична гра</div>
+<div class="wrapper">
+  <h1>ХРЕСТИКИ × НУЛИКИ</h1>
+  <div class="subtitle">Навчальна реалізація на JavaScript</div>
 
   <div class="controls">
     <select id="mode">
       <option value="pvp">Два гравці</option>
       <option value="bot">Проти бота</option>
     </select>
+    <button onclick="resetGame()">Нова гра</button>
   </div>
 
-  <div id="status">Хід гравця: X</div>
+  <div id="status">Хід: X</div>
+
+  <div class="board" id="board"></div>
+
+  <div class="stats">
+    Ігор: <span id="games">0</span> |
+    X: <span id="xWins">0</span> |
+    O: <span id="oWins">0</span> |
+    Нічия: <span id="draws">0</span>
   </div>
+</div>
 
+<script>
+  var board = [];
+  var currentPlayer = "X";
+  var gameActive = true;
 
+  var games = 0;
+  var xWins = 0;
+  var oWins = 0;
+  var draws = 0;
+
+  var winPatterns = 
+  [
+    [0,1,2],[3,4,5],[6,7,8],
+    [0,3,6],[1,4,7],[2,5,8],
+    [0,4,8],[2,4,6]
+  ];
+
+  window.onload = function ()
+  {
+    createBoard();
+  };
+
+  function createBoard() 
+  {
+    var boardDiv = document.getElementById("board");
+    boardDiv.innerHTML = "";
+    board = [];
+
+    for (var i = 0; i < 9; i++) {
+      board[i] = "";
+
+      var cell = document.createElement("div");
+      cell.className = "cell"
+      cell.id = "cell" + i;
+      cell.onclick = function ()
+      {
+        var index = this.id.replace("cell", "");
+        makeMove(index);
+      };
+      boardDiv.appendChild(cell);
+    }
+  }
+
+  function makeMove(index) 
+  {
+    if (!gameActive) return;
+    if (board[index] != "") return;
+
+    board[index] = currentPlayer;
+    var cell = document.getElementById("cell" + index);
+    cell.innerHTML = currentPlayer;
+    cell.className += currentPlayer == "X" ? " x" : " o";
+
+    if (checkWin(currentPlayer)) 
+    {
+      document.getElementById("status").innerHTML = "Перемога: " + currentPlayer;
+      updateStats(currentPlayer);
+      gameActive = false;
+      return;
+    }
+
+    if (isDraw()) {
+      document.getElementById("status").innerHTML = "Нічия";
+      updateStats("draw");
+      gameActive = false;
+      return;
+    }
+
+    currentPlayer = currentPlayer == "X" ? "O" : "X";
+    document.getElementById("status").innerHTML = "Хід: " + currentPlayer;
+
+    if (document.getElementById("mode").value == "bot" && currentPlayer == "O") 
+    {
+      botMove();
+    }
+  }
+
+  function botMove() 
+  {
+    var emptyCells = [];
+
+    for (var i = 0; i < 9; i++) 
+    {
+      if (board[i] == "") 
+      {
+        emptyCells[emptyCells.length] = i;
+      }
+    }
+
+    var randomIndex = Math.floor(Math.random() * emptyCells.length);
+    makeMove(emptyCells[randomIndex]);
+  }
+
+  function checkWin(player) 
+  {
+    for (var i = 0; i < winPatterns.length; i++) 
+    {
+      var win = true;
+
+      for (var j = 0; j < 3; j++) 
+      {
+        if (board[winPatterns[i][j]] != player) 
+        {
+          win = false;
+        }
+      }
+
+      if (win) 
+      {
+        highlightWin(winPatterns[i]);
+        return true;
+      }
+    }
+    return false;
+  }
+
+  function highlightWin(pattern) 
+  {
+    for (var i = 0; i < pattern.length; i++) 
+    {
+      document.getElementById("cell" + pattern[i]).className += " win";
+    }
+  }
+
+  function isDraw() 
+  {
+    for (var i = 0; i < 9; i++) 
+    {
+      if (board[i] == "") return false;
+    }
+    return true;
+  }
+
+  function updateStats(result) 
+  {
+    games++;
+
+    if (result == "X") xWins++;
+    else if (result == "O") oWins++;
+    else draws++;
+
+    document.getElementById("games").innerHTML = games;
+    document.getElementById("xWins").innerHTML = xWins;
+    document.getElementById("oWins").innerHTML = oWins;
+    document.getElementById("draws").innerHTML = draws;
+  }
+
+  function resetGame() 
+  {
+    currentPlayer = "X";
+    gameActive = true;
+    document.getElementById("status").innerHTML = "Хід: X";
+    createBoard();
+  }
+
+</script>
 
 </body>
 </html>
